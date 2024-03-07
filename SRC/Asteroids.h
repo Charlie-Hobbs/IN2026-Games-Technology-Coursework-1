@@ -48,10 +48,13 @@ public:
 	void OnTimer(int value);
 
 private:
+	bool mGameStarted;
+
 	shared_ptr<Spaceship> mSpaceship;
 	shared_ptr<GUILabel> mScoreLabel;
 	shared_ptr<GUILabel> mLivesLabel;
 	shared_ptr<GUILabel> mGameOverLabel;
+	shared_ptr<GUILabel> mStartScreenLabel;
 
 	uint mLevel;
 	uint mAsteroidCount;
@@ -65,6 +68,8 @@ private:
 	const static uint SHOW_GAME_OVER = 0;
 	const static uint START_NEXT_LEVEL = 1;
 	const static uint CREATE_NEW_PLAYER = 2;
+
+	const static uchar START_GAME_KEY = 's';
 
 	ScoreKeeper mScoreKeeper;
 	Player mPlayer;

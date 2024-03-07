@@ -1,5 +1,7 @@
-﻿Asteroid.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
-  Asteroids.vcxproj -> C:\Users\Kizito\OneDrive - City, University of London\IN2026\Preparation 2023_2024\Coursework code\IN2026 Coursework Code\VC\Asteroids\..\..\bin\Asteroids.exe
+﻿cl : command line  warning D9035: option 'Gm' has been deprecated and will be removed in a future release
+  Asteroids.cpp
+Asteroid.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
+  Asteroids.vcxproj -> C:\Users\charl\Documents\MSc Computer Science With Games Technology\Year 2\Semester 2\IN2026 Games Technology\IN2026-Games-Technology-Coursework-1\bin\Asteroids.exe
   ..\..\assets\asteroid.shape
   ..\..\assets\asteroid1_fs.png
   ..\..\assets\bullet.shape

@@ -1,7 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <ProjectOutputs>C:\Users\Kizito\OneDrive - City, University of London\IN2026\Preparation 2023_2024\Coursework code\IN2026 Coursework Code\bin\Asteroids.exe</ProjectOutputs>
-  <ContentFiles></ContentFiles>
-  <SatelliteDlls></SatelliteDlls>
-  <NonRecipeFileRefs></NonRecipeFileRefs>
+  <ProjectOutputs>
+    <ProjectOutput>
+      <FullPath>C:\Users\charl\Documents\MSc Computer Science With Games Technology\Year 2\Semester 2\IN2026 Games Technology\IN2026-Games-Technology-Coursework-1\bin\Asteroids.exe</FullPath>
+    </ProjectOutput>
+  </ProjectOutputs>
+  <ContentFiles />
+  <SatelliteDlls />
+  <NonRecipeFileRefs />
 </Project>
