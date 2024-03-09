@@ -58,13 +58,16 @@ private:
 
 	uint mLevel;
 	uint mAsteroidCount;
+	uint mCollectibleCount;
 
 	void ResetSpaceship();
 	shared_ptr<GameObject> CreateSpaceship();
 	void CreateGUI();
 	void CreateAsteroids(const uint num_asteroids);
+	void CreateCollectibles(const uint num_collectibles);
+	void OnPlayerHealthChange(const int lives);
 	shared_ptr<GameObject> CreateExplosion();
-	
+
 	const static uint SHOW_GAME_OVER = 0;
 	const static uint START_NEXT_LEVEL = 1;
 	const static uint CREATE_NEW_PLAYER = 2;

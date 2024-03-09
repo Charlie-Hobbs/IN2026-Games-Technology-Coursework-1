@@ -11,6 +11,7 @@
 #include "BoundingSphere.h"
 #include "GUILabel.h"
 #include "Explosion.h"
+#include "Collectible.h"
 
 // PUBLIC INSTANCE CONSTRUCTORS ///////////////////////////////////////////////
 
@@ -20,6 +21,7 @@ Asteroids::Asteroids(int argc, char *argv[])
 {
 	mLevel = 0;
 	mAsteroidCount = 0;
+	mCollectibleCount = 0;
 }
 
 /** Destructor. */
@@ -96,7 +98,8 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 			// Create a spaceship and add it to the world
 			mGameWorld->AddObject(CreateSpaceship());
 			// Create some asteroids and add them to the world
-			CreateAsteroids(10);
+			CreateAsteroids(3);
+			CreateCollectibles(3);
 
 			mScoreLabel->SetVisible(true);
 			mLivesLabel->SetVisible(true);
@@ -149,11 +152,25 @@ void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 		shared_ptr<GameObject> explosion = CreateExplosion();
 		explosion->SetPosition(object->GetPosition());
 		explosion->SetRotation(object->GetRotation());
-		mGameWorld->AddObject(explosion);
+		world->AddObject(explosion);
 		mAsteroidCount--;
 		if (mAsteroidCount <= 0) 
 		{ 
 			SetTimer(500, START_NEXT_LEVEL); 
+		}
+	}
+	else if (object->GetType() == GameObjectType("Collectible"))
+	{
+		--mCollectibleCount;
+		Collectible* col = (Collectible*)object.get();
+		switch (col->GetCollectibleType())
+		{
+		case ECollectibleType(ExtraLife):
+			mPlayer.AddLife();
+			OnPlayerHealthChange(mPlayer.GetLives());
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -172,7 +189,10 @@ void Asteroids::OnTimer(int value)
 	{
 		mLevel++;
 		int num_asteroids = 10 + 2 * mLevel;
-		CreateAsteroids(num_asteroids);
+		CreateAsteroids(3);
+
+		uint numCollectiblesToCreate = 3 - mCollectibleCount;
+		CreateCollectibles(numCollectiblesToCreate);
 	}
 
 	if (value == SHOW_GAME_OVER)
@@ -217,6 +237,27 @@ void Asteroids::CreateAsteroids(const uint num_asteroids)
 		asteroid->SetSprite(asteroid_sprite);
 		asteroid->SetScale(0.2f);
 		mGameWorld->AddObject(asteroid);
+	}
+}
+
+void Asteroids::CreateCollectibles(const uint num_collectibles)
+{
+	mCollectibleCount += num_collectibles;
+	for (uint i = 0; i < num_collectibles; i++)
+	{
+		// modify once additional types are added to randomly create them
+		Animation* anim_ptr = AnimationManager::GetInstance().GetAnimationByName("asteroid1");
+		shared_ptr<Sprite> extraLife_sprite
+			= make_shared<Sprite>(anim_ptr->GetWidth(), anim_ptr->GetHeight(), anim_ptr);
+		
+		shared_ptr<GameObject> collectible = make_shared<Collectible>(ExtraLife);
+		collectible->SetBoundingShape(make_shared<BoundingSphere>(collectible->GetThisPtr(), 10.0f));
+		collectible->SetScale(0.1f);
+
+		collectible->SetSprite(extraLife_sprite); // change sprite and animation
+
+
+		mGameWorld->AddObject(collectible);
 	}
 }
 
@@ -275,7 +316,6 @@ void Asteroids::CreateGUI()
 	mLivesLabel->SetVisible(false);
 }
 
-
 void Asteroids::OnScoreChanged(int score)
 {
 	// Format the score message using an string-based stream
@@ -293,12 +333,7 @@ void Asteroids::OnPlayerKilled(int lives_left)
 	explosion->SetRotation(mSpaceship->GetRotation());
 	mGameWorld->AddObject(explosion);
 
-	// Format the lives left message using an string-based stream
-	std::ostringstream msg_stream;
-	msg_stream << "Lives: " << lives_left;
-	// Get the lives left message as a string
-	std::string lives_msg = msg_stream.str();
-	mLivesLabel->SetText(lives_msg);
+	OnPlayerHealthChange(lives_left);
 
 	if (lives_left > 0) 
 	{ 
@@ -312,7 +347,7 @@ void Asteroids::OnPlayerKilled(int lives_left)
 
 shared_ptr<GameObject> Asteroids::CreateExplosion()
 {
-	Animation *anim_ptr = AnimationManager::GetInstance().GetAnimationByName("explosion");
+	Animation* anim_ptr = AnimationManager::GetInstance().GetAnimationByName("explosion");
 	shared_ptr<Sprite> explosion_sprite =
 		make_shared<Sprite>(anim_ptr->GetWidth(), anim_ptr->GetHeight(), anim_ptr);
 	explosion_sprite->SetLoopAnimation(false);
@@ -322,6 +357,12 @@ shared_ptr<GameObject> Asteroids::CreateExplosion()
 	return explosion;
 }
 
-
-
-
+void Asteroids::OnPlayerHealthChange(const int lives)
+{
+	// Format the lives left message using an string-based stream
+	std::ostringstream msg_stream;
+	msg_stream << "Lives: " << lives;
+	// Get the lives left message as a string
+	std::string lives_msg = msg_stream.str();
+	mLivesLabel->SetText(lives_msg);
+}

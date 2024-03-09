@@ -6,7 +6,9 @@ Asteroid.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' sp
   ..\..\assets\asteroid1_fs.png
   ..\..\assets\bullet.shape
   ..\..\assets\explosion_fs.png
+  ..\..\assets\extralife_fs.png
+  ..\..\assets\extra_life.shape
   ..\..\assets\spaceship.shape
   ..\..\assets\spaceship_fs.png
   ..\..\assets\thruster.shape
-          7 file(s) copied.
+          9 file(s) copied.

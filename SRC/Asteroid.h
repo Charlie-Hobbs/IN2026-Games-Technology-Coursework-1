@@ -4,7 +4,7 @@
 #include "GameObject.h"
 
 class Asteroid : public GameObject
-{
+{	
 public:
 	Asteroid(void);
 	~Asteroid(void);

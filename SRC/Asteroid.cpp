@@ -2,6 +2,9 @@
 #include "GameUtil.h"
 #include "Asteroid.h"
 #include "BoundingShape.h"
+#include "AnimationManager.h"
+#include "Animation.h"
+#include "Explosion.h"
 
 Asteroid::Asteroid(void) : GameObject("Asteroid")
 {
@@ -31,3 +34,4 @@ void Asteroid::OnCollision(const GameObjectList& objects)
 {
 	mWorld->FlagForRemoval(GetThisPtr());
 }
+
