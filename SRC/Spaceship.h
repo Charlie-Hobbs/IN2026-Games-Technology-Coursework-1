@@ -27,8 +27,13 @@ public:
 	bool CollisionTest(shared_ptr<GameObject> o);
 	void OnCollision(const GameObjectList &objects);
 
+	uint GetBulletCount() const { return mBulletCount; }
+	void ReplenishAmmo(const uint ammoGained) { mBulletCount += ammoGained; }
+
 private:
 	float mThrust;
+
+	uint mBulletCount;
 
 	shared_ptr<Shape> mSpaceshipShape;
 	shared_ptr<Shape> mThrusterShape;

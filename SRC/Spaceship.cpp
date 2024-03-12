@@ -3,6 +3,7 @@
 #include "Bullet.h"
 #include "Spaceship.h"
 #include "BoundingSphere.h"
+#include "Collectible.h"
 
 using namespace std;
 
@@ -10,19 +11,19 @@ using namespace std;
 
 /**  Default constructor. */
 Spaceship::Spaceship()
-	: GameObject("Spaceship"), mThrust(0)
+	: GameObject("Spaceship"), mThrust(0), mBulletCount(100)
 {
 }
 
 /** Construct a spaceship with given position, velocity, acceleration, angle, and rotation. */
 Spaceship::Spaceship(GLVector3f p, GLVector3f v, GLVector3f a, GLfloat h, GLfloat r)
-	: GameObject("Spaceship", p, v, a, h, r), mThrust(0)
+	: GameObject("Spaceship", p, v, a, h, r), mThrust(0), mBulletCount(100)
 {
 }
 
 /** Copy constructor. */
 Spaceship::Spaceship(const Spaceship& s)
-	: GameObject(s), mThrust(0)
+	: GameObject(s), mThrust(0), mBulletCount(100)
 {
 }
 
@@ -73,6 +74,8 @@ void Spaceship::Shoot(void)
 {
 	// Check the world exists
 	if (!mWorld) return;
+	if (mBulletCount == 0) return;
+
 	// Construct a unit length vector in the direction the spaceship is headed
 	GLVector3f spaceship_heading(cos(DEG2RAD*mAngle), sin(DEG2RAD*mAngle), 0);
 	spaceship_heading.normalize();
@@ -89,15 +92,21 @@ void Spaceship::Shoot(void)
 	bullet->SetShape(mBulletShape);
 	// Add the new bullet to the game world
 	mWorld->AddObject(bullet);
-
+	--mBulletCount;
 }
 
 bool Spaceship::CollisionTest(shared_ptr<GameObject> o)
 {
-	if (o->GetType() != GameObjectType("Asteroid")) return false;
+
 	if (mBoundingShape.get() == NULL) return false;
 	if (o->GetBoundingShape().get() == NULL) return false;
-	return mBoundingShape->CollisionTest(o->GetBoundingShape());
+
+	if (mBoundingShape->CollisionTest(o->GetBoundingShape()))
+	{
+		if (o->GetType() == GameObjectType("Asteroid")) return true;
+	}
+
+	return false;
 }
 
 void Spaceship::OnCollision(const GameObjectList &objects)

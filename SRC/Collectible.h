@@ -2,11 +2,11 @@
 #define __COLLECTIBLE_H__
 
 #include "GameObject.h"
-#include <random>
 
 enum ECollectibleType
 {
 	ExtraLife,
+	ExtraBullets,
 	COLLECTIBLE_TYPE_LENGTH
 };
 
@@ -15,6 +15,7 @@ class Collectible : public GameObject
 	ECollectibleType mType;
 public:
 	Collectible(ECollectibleType type);
+	Collectible(void);
 	~Collectible(void);
 
 	bool CollisionTest(shared_ptr<GameObject> o);

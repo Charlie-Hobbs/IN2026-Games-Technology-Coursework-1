@@ -55,6 +55,7 @@ private:
 	shared_ptr<GUILabel> mLivesLabel;
 	shared_ptr<GUILabel> mGameOverLabel;
 	shared_ptr<GUILabel> mStartScreenLabel;
+	shared_ptr<GUILabel> mAmmoCountLabel;
 
 	uint mLevel;
 	uint mAsteroidCount;
@@ -66,6 +67,7 @@ private:
 	void CreateAsteroids(const uint num_asteroids);
 	void CreateCollectibles(const uint num_collectibles);
 	void OnPlayerHealthChange(const int lives);
+	void OnPlayerAmmoChange(const uint bullets);
 	shared_ptr<GameObject> CreateExplosion();
 
 	const static uint SHOW_GAME_OVER = 0;

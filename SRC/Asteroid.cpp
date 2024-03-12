@@ -9,7 +9,7 @@
 Asteroid::Asteroid(void) : GameObject("Asteroid")
 {
 	mAngle = rand() % 360;
-	mRotation = 0; // rand() % 90;
+	mRotation = 0;
 	mPosition.x = rand() / 2;
 	mPosition.y = rand() / 2;
 	mPosition.z = 0.0;
@@ -24,10 +24,16 @@ Asteroid::~Asteroid(void)
 
 bool Asteroid::CollisionTest(shared_ptr<GameObject> o)
 {
-	if (GetType() == o->GetType()) return false;
 	if (mBoundingShape.get() == NULL) return false;
 	if (o->GetBoundingShape().get() == NULL) return false;
-	return mBoundingShape->CollisionTest(o->GetBoundingShape());
+
+	if (mBoundingShape->CollisionTest(o->GetBoundingShape()))
+	{
+		if (o->GetType() == GameObjectType("Bullet")) return true;
+		if (o->GetType() == GameObjectType("Spaceship")) return true;
+	}
+
+	return false;
 }
 
 void Asteroid::OnCollision(const GameObjectList& objects)
