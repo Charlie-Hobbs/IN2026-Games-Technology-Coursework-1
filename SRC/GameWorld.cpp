@@ -174,15 +174,18 @@ void GameWorld::UpdateCollisions(int t)
 	for (it1 = mCollisions.begin(); it1 != mCollisions.end(); ++it1) {
 		shared_ptr<GameObject> object1 = it1->first;
 		GameObjectList& collisions1 = it1->second;
-		for (it2 = it1; it2 != mCollisions.end(); ++it2) {
+		for (it2 = mCollisions.begin(); it2 != mCollisions.end(); ++it2) {
 			shared_ptr<GameObject> object2 = it2->first;
+			GameObjectList& collisions2 = it2->second;
 			if (object2 != object1) {
 				if (object1->CollisionTest(object2)) {
 					collisions1.push_back(object2);
+					collisions2.push_back(object1);
 				}
 			}
 		}
 	}
+
 
 	// Call objects to handle collisions
 	it1 = mCollisions.begin();

@@ -29,6 +29,7 @@ public:
 
 	uint GetBulletCount() const { return mBulletCount; }
 	void ReplenishAmmo(const uint ammoGained) { mBulletCount += ammoGained; }
+	void SetAmmo(const uint ammo) { mBulletCount = ammo; }
 
 private:
 	float mThrust;

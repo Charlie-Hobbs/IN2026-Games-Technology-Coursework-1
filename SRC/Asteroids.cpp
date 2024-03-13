@@ -35,6 +35,7 @@ Asteroids::~Asteroids(void)
 void Asteroids::Start()
 {
 	mGameStarted = false;
+	mGameOver = false;
 
 	// Create a shared pointer for the Asteroids game object - DO NOT REMOVE
 	shared_ptr<Asteroids> thisPtr = shared_ptr<Asteroids>(this);
@@ -91,21 +92,16 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 	{
 	case ' ':
 		mSpaceship->Shoot();
-		OnPlayerAmmoChange(mSpaceship->GetBulletCount());
+		UpdateAmmoLabel(mSpaceship->GetBulletCount());
 		break;
 	case START_GAME_KEY:
 		if (!mGameStarted)
 		{
-			mGameStarted = true;
-			mStartScreenLabel->SetVisible(false);
-			// Create a spaceship and add it to the world
-			mGameWorld->AddObject(CreateSpaceship());
-			// Create some asteroids and add them to the world
-			CreateAsteroids(3);
-			CreateCollectibles(3);
-
-			mScoreLabel->SetVisible(true);
-			mLivesLabel->SetVisible(true);
+			OnGameStart(false);
+		}
+		else if (mGameOver)
+		{
+			OnGameStart(true);
 		}
 		break;
 	default:
@@ -170,11 +166,11 @@ void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 		{
 		case ECollectibleType(ExtraLife):
 			mPlayer.AddLife();
-			OnPlayerHealthChange(mPlayer.GetLives());
+			UpdateLivesLabel(mPlayer.GetLives());
 			break;
 		case ECollectibleType(ExtraBullets):
 			mSpaceship->ReplenishAmmo(100);
-			OnPlayerAmmoChange(mSpaceship->GetBulletCount());
+			UpdateAmmoLabel(mSpaceship->GetBulletCount());
 			break;
 		default:
 			break;
@@ -202,9 +198,9 @@ void Asteroids::OnTimer(int value)
 		CreateCollectibles(numCollectiblesToCreate);
 	}
 
-	if (value == SHOW_GAME_OVER)
+	if (value == ON_GAME_OVER)
 	{
-		mGameOverLabel->SetVisible(true);
+		OnGameOver();
 	}
 
 }
@@ -233,7 +229,7 @@ shared_ptr<GameObject> Asteroids::CreateSpaceship()
 void Asteroids::CreateAsteroids(const uint num_asteroids)
 {
 	//return;
-	mAsteroidCount = num_asteroids;
+	mAsteroidCount += num_asteroids;
 	for (uint i = 0; i < num_asteroids; i++)
 	{
 		Animation *anim_ptr = AnimationManager::GetInstance().GetAnimationByName("asteroid1");
@@ -285,62 +281,46 @@ void Asteroids::CreateCollectibles(const uint num_collectibles)
 
 void Asteroids::CreateGUI()
 {
-	// Add a (transparent) border around the edge of the game display
 	mGameDisplay->GetContainer()->SetBorder(GLVector2i(10, 10));
-	// Create a new GUILabel and wrap it up in a shared_ptr
 	mScoreLabel = make_shared<GUILabel>("Score: 0");
-	// Set the vertical alignment of the label to GUI_VALIGN_TOP
 	mScoreLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_TOP);
-	// Add the GUILabel to the GUIComponent  
 	shared_ptr<GUIComponent> score_component
 		= static_pointer_cast<GUIComponent>(mScoreLabel);
 	mGameDisplay->GetContainer()->AddComponent(score_component, GLVector2f(0.0f, 1.0f));
 
-	// Create a new GUILabel and wrap it up in a shared_ptr
 	mLivesLabel = make_shared<GUILabel>("Lives: 3");
-	// Set the vertical alignment of the label to GUI_VALIGN_BOTTOM
 	mLivesLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_BOTTOM);
-	// Add the GUILabel to the GUIComponent  
 	shared_ptr<GUIComponent> lives_component = static_pointer_cast<GUIComponent>(mLivesLabel);
 	mGameDisplay->GetContainer()->AddComponent(lives_component, GLVector2f(0.0f, 0.0f));
 
-	// Create a new GUILabel and wrap it up in a shared_ptr
 	mAmmoCountLabel = shared_ptr<GUILabel>(new GUILabel("Ammo: 100"));
-	// Set the horizontal alignment of the label to GUI_HALIGN_CENTER
 	mAmmoCountLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_RIGHT);
-	// Set the vertical alignment of the label to GUI_VALIGN_MIDDLE
 	mAmmoCountLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_BOTTOM);
-	// Set the visibility of the label to false (hidden)
-	// Add the GUILabel to the GUIContainer  
 	shared_ptr<GUIComponent> ammo_count_component
 		= static_pointer_cast<GUIComponent>(mAmmoCountLabel);
 	mGameDisplay->GetContainer()->AddComponent(ammo_count_component, GLVector2f(1.0f, 0.0f));
 
-	// Create a new GUILabel and wrap it up in a shared_ptr
-	mGameOverLabel = shared_ptr<GUILabel>(new GUILabel("GAME OVER"));
-	// Set the horizontal alignment of the label to GUI_HALIGN_CENTER
+	std::string gameOverText = "GAME OVER \n Press ";
+	gameOverText += START_GAME_KEY;
+	gameOverText += " to restart.";
+
+	mGameOverLabel = shared_ptr<GUILabel>(new GUILabel(gameOverText));
 	mGameOverLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
-	// Set the vertical alignment of the label to GUI_VALIGN_MIDDLE
 	mGameOverLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
-	// Set the visibility of the label to false (hidden)
 	mGameOverLabel->SetVisible(false);
-	// Add the GUILabel to the GUIContainer  
 	shared_ptr<GUIComponent> game_over_component
 		= static_pointer_cast<GUIComponent>(mGameOverLabel);
 	mGameDisplay->GetContainer()->AddComponent(game_over_component, GLVector2f(0.5f, 0.5f));
 
-	// Create a new GUILabel and wrap it up in a shared_ptr
+	// so i can use the START_GAME_KEY in the string
 	std::string startText = "Press ";
 	startText += START_GAME_KEY;
 	startText += " to start game!";
+
 	mStartScreenLabel = shared_ptr<GUILabel>(new GUILabel(startText));
-	// Set the horizontal alignment of the label to GUI_HALIGN_CENTER
 	mStartScreenLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
-	// Set the vertical alignment of the label to GUI_VALIGN_MIDDLE
 	mStartScreenLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
-	// Set the visibility of the label to false (hidden)
 	mStartScreenLabel->SetVisible(true);
-	// Add the GUILabel to the GUIContainer  
 	shared_ptr<GUIComponent> start_screen_component
 		= static_pointer_cast<GUIComponent>(mStartScreenLabel);
 	mGameDisplay->GetContainer()->AddComponent(start_screen_component, GLVector2f(0.5f, 0.5f));
@@ -348,7 +328,7 @@ void Asteroids::CreateGUI()
 	// so they arent visible before game start
 	mScoreLabel->SetVisible(false);
 	mLivesLabel->SetVisible(false);
-	mAmmoCountLabel->SetVisible(true);
+	mAmmoCountLabel->SetVisible(false);
 }
 
 void Asteroids::OnScoreChanged(int score)
@@ -368,7 +348,7 @@ void Asteroids::OnPlayerKilled(int lives_left)
 	explosion->SetRotation(mSpaceship->GetRotation());
 	mGameWorld->AddObject(explosion);
 
-	OnPlayerHealthChange(lives_left);
+	UpdateLivesLabel(lives_left);
 
 	if (lives_left > 0) 
 	{ 
@@ -376,7 +356,7 @@ void Asteroids::OnPlayerKilled(int lives_left)
 	}
 	else
 	{
-		SetTimer(500, SHOW_GAME_OVER);
+		SetTimer(500, ON_GAME_OVER);
 	}
 }
 
@@ -392,7 +372,7 @@ shared_ptr<GameObject> Asteroids::CreateExplosion()
 	return explosion;
 }
 
-void Asteroids::OnPlayerHealthChange(const int lives)
+void Asteroids::UpdateLivesLabel(const int lives)
 {
 	// Format the lives left message using an string-based stream
 	std::ostringstream msg_stream;
@@ -402,7 +382,7 @@ void Asteroids::OnPlayerHealthChange(const int lives)
 	mLivesLabel->SetText(lives_msg);
 }
 
-void Asteroids::OnPlayerAmmoChange(const uint bullets)
+void Asteroids::UpdateAmmoLabel(const uint bullets)
 {
 	// Format the bullets left message using an string-based stream
 	std::ostringstream msg_stream;
@@ -411,3 +391,54 @@ void Asteroids::OnPlayerAmmoChange(const uint bullets)
 	std::string ammo_msg = msg_stream.str();
 	mAmmoCountLabel->SetText(ammo_msg);
 }
+
+void Asteroids::OnGameOver()
+{
+	mGameOver = true;
+	mLivesLabel->SetVisible(false);
+	mScoreLabel->SetVisible(false);
+	mAmmoCountLabel->SetVisible(false);
+	mGameOverLabel->SetVisible(true);
+}
+
+void Asteroids::OnGameStart(bool isRestart)
+{
+	mStartScreenLabel->SetVisible(false);
+
+	int collectibleAmount = 3;
+	int asteroidAmount = 3;
+
+	if (isRestart)
+	{
+		mLevel = 0;
+
+		mSpaceship->Reset();
+		mGameWorld->AddObject(mSpaceship);
+
+		mGameOverLabel->SetVisible(false);
+		mScoreKeeper.ResetScore();
+
+		mSpaceship->SetAmmo(100);
+		UpdateAmmoLabel(100);
+
+		mPlayer.SetLives(3);
+		UpdateLivesLabel(3);
+
+		collectibleAmount -= mCollectibleCount;
+		asteroidAmount -= mAsteroidCount;
+	}
+	else
+	{
+		mGameWorld->AddObject(CreateSpaceship());
+
+		mGameStarted = true;
+	}
+
+	CreateAsteroids(asteroidAmount);
+	CreateCollectibles(collectibleAmount);
+
+	mScoreLabel->SetVisible(true);
+	mLivesLabel->SetVisible(true);
+	mAmmoCountLabel->SetVisible(true);
+}
+

@@ -49,6 +49,7 @@ public:
 
 private:
 	bool mGameStarted;
+	bool mGameOver;
 
 	shared_ptr<Spaceship> mSpaceship;
 	shared_ptr<GUILabel> mScoreLabel;
@@ -66,11 +67,13 @@ private:
 	void CreateGUI();
 	void CreateAsteroids(const uint num_asteroids);
 	void CreateCollectibles(const uint num_collectibles);
-	void OnPlayerHealthChange(const int lives);
-	void OnPlayerAmmoChange(const uint bullets);
+	void UpdateLivesLabel(const int lives);
+	void UpdateAmmoLabel(const uint bullets);
+	void OnGameOver();
+	void OnGameStart(bool isRestart);
 	shared_ptr<GameObject> CreateExplosion();
 
-	const static uint SHOW_GAME_OVER = 0;
+	const static uint ON_GAME_OVER = 0;
 	const static uint START_NEXT_LEVEL = 1;
 	const static uint CREATE_NEW_PLAYER = 2;
 

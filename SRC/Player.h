@@ -42,6 +42,7 @@ public:
 
 	void AddLife() { ++mLives; }
 	int GetLives() { return mLives; }
+	void SetLives(const uint lives) { mLives = lives; }
 private:
 	int mLives;
 
