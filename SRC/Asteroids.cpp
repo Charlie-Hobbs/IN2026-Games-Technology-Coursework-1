@@ -64,6 +64,8 @@ void Asteroids::Start()
 	Animation *spaceship_anim = AnimationManager::GetInstance().CreateAnimationFromFile("spaceship", 128, 128, 128, 128, "spaceship_fs.png");
 	Animation *life_anim = AnimationManager::GetInstance().CreateAnimationFromFile("extralife", 128, 128, 128, 128, "extralife.png");
 	Animation *ammo_anim = AnimationManager::GetInstance().CreateAnimationFromFile("extrabullets", 128, 128, 128, 128, "ammo.png");
+	Animation *enemy_anim = AnimationManager::GetInstance().CreateAnimationFromFile("enemy", 128, 8192, 128, 128, "enemy_fs.png");
+	Animation *armour_anim = AnimationManager::GetInstance().CreateAnimationFromFile("armour", 128, 128, 128, 128, "armour.png");
 
 	//Create the GUI
 	CreateGUI();
@@ -146,6 +148,8 @@ void Asteroids::OnSpecialKeyReleased(int key, int x, int y)
 
 void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 {
+	if (mGameOver) return;
+
 	if (object->GetType() == GameObjectType("Asteroid"))
 	{
 		shared_ptr<GameObject> explosion = CreateExplosion();
@@ -169,8 +173,11 @@ void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 			UpdateLivesLabel(mPlayer.GetLives());
 			break;
 		case ECollectibleType(ExtraBullets):
-			mSpaceship->ReplenishAmmo(100);
+			mSpaceship->ReplenishAmmo(100); // maybe add variable for the number of bullets to give?
 			UpdateAmmoLabel(mSpaceship->GetBulletCount());
+			break;
+		case ECollectibleType(Armour):
+			mSpaceship->SetAmoured(true); // maybe change colour?
 			break;
 		default:
 			break;
@@ -191,10 +198,10 @@ void Asteroids::OnTimer(int value)
 	if (value == START_NEXT_LEVEL)
 	{
 		mLevel++;
-		int num_asteroids = 10 + 2 * mLevel;
-		CreateAsteroids(3);
+		int num_asteroids = NUM_START_ASTEROIDS + 2 * mLevel;
+		CreateAsteroids(num_asteroids);
 
-		uint numCollectiblesToCreate = 3 - mCollectibleCount;
+		uint numCollectiblesToCreate = NUM_POWERUPS - mCollectibleCount;
 		CreateCollectibles(numCollectiblesToCreate);
 	}
 
@@ -202,7 +209,6 @@ void Asteroids::OnTimer(int value)
 	{
 		OnGameOver();
 	}
-
 }
 
 // PROTECTED INSTANCE METHODS /////////////////////////////////////////////////
@@ -221,14 +227,15 @@ shared_ptr<GameObject> Asteroids::CreateSpaceship()
 	mSpaceship->SetScale(0.1f);
 	// Reset spaceship back to centre of the world
 	mSpaceship->Reset();
+
+	mSpaceship->SetAmmo(PLAYER_START_BULLETS);
+
 	// Return the spaceship so it can be added to the world
 	return mSpaceship;
-
 }
 
 void Asteroids::CreateAsteroids(const uint num_asteroids)
 {
-	//return;
 	mAsteroidCount += num_asteroids;
 	for (uint i = 0; i < num_asteroids; i++)
 	{
@@ -241,6 +248,7 @@ void Asteroids::CreateAsteroids(const uint num_asteroids)
 		asteroid->SetSprite(asteroid_sprite);
 		asteroid->SetScale(0.2f);
 		mGameWorld->AddObject(asteroid);
+		mGameObjectList.push_back(asteroid);
 	}
 }
 
@@ -255,6 +263,7 @@ void Asteroids::CreateCollectibles(const uint num_collectibles)
 
 		std::string animName;
 		Collectible* col = (Collectible*) collectible.get();
+		col->SetCollectibleType(Collectible::RandomType());
 		switch (col->GetCollectibleType())
 		{
 		case ECollectibleType(ExtraLife):
@@ -263,10 +272,12 @@ void Asteroids::CreateCollectibles(const uint num_collectibles)
 		case ECollectibleType(ExtraBullets):
 			animName = "extrabullets";
 			break;
+		case ECollectibleType(Armour):
+			animName = "armour";
+			break;
 		default:
 			animName = "extralife";
 			break;
-
 		}
 
 		Animation* anim_ptr = AnimationManager::GetInstance().GetAnimationByName(animName);
@@ -276,6 +287,7 @@ void Asteroids::CreateCollectibles(const uint num_collectibles)
 		collectible->SetSprite(extraLife_sprite); // change sprite and animation
 
 		mGameWorld->AddObject(collectible);
+		mGameObjectList.push_back(collectible);
 	}
 }
 
@@ -405,11 +417,16 @@ void Asteroids::OnGameStart(bool isRestart)
 {
 	mStartScreenLabel->SetVisible(false);
 
-	int collectibleAmount = 3;
-	int asteroidAmount = 3;
+	int collectibleAmount = NUM_POWERUPS;
+	int asteroidAmount = NUM_START_ASTEROIDS;
+
+	bool shouldGenerateCollectibles = true;
+	bool shouldGenerateAsteroids = true;
 
 	if (isRestart)
 	{
+		RemoveAllObjects();
+
 		mLevel = 0;
 
 		mSpaceship->Reset();
@@ -418,14 +435,19 @@ void Asteroids::OnGameStart(bool isRestart)
 		mGameOverLabel->SetVisible(false);
 		mScoreKeeper.ResetScore();
 
-		mSpaceship->SetAmmo(100);
-		UpdateAmmoLabel(100);
+		mSpaceship->SetAmmo(PLAYER_START_BULLETS);
+		UpdateAmmoLabel(mSpaceship->GetBulletCount());
 
-		mPlayer.SetLives(3);
-		UpdateLivesLabel(3);
+		mPlayer.SetLives(PLAYER_START_LIVES);
+		UpdateLivesLabel(mPlayer.GetLives());
 
-		collectibleAmount -= mCollectibleCount;
-		asteroidAmount -= mAsteroidCount;
+		if (mCollectibleCount < collectibleAmount) collectibleAmount -= mCollectibleCount;
+		else shouldGenerateCollectibles = false;
+
+		if (mAsteroidCount < asteroidAmount) asteroidAmount -= mAsteroidCount;
+		else shouldGenerateAsteroids = false;
+
+		mGameOver = false;
 	}
 	else
 	{
@@ -434,8 +456,8 @@ void Asteroids::OnGameStart(bool isRestart)
 		mGameStarted = true;
 	}
 
-	CreateAsteroids(asteroidAmount);
-	CreateCollectibles(collectibleAmount);
+	if (shouldGenerateAsteroids) CreateAsteroids(asteroidAmount);
+	if (shouldGenerateCollectibles) CreateCollectibles(collectibleAmount);
 
 	mScoreLabel->SetVisible(true);
 	mLivesLabel->SetVisible(true);

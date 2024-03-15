@@ -111,6 +111,10 @@ void Spaceship::OnCollision(const GameObjectList &objects)
 {
 	for each (auto o in objects)
 	{
-		if (o->GetType() == GameObjectType("Asteroid")) mWorld->FlagForRemoval(GetThisPtr());
+		if (o->GetType() == GameObjectType("Asteroid"))
+		{
+			if (!mArmoured) mWorld->FlagForRemoval(GetThisPtr());
+			else mArmoured = false;
+		}
 	}
 }

@@ -1,15 +1,19 @@
 ﻿cl : command line  warning D9035: option 'Gm' has been deprecated and will be removed in a future release
-  Spaceship.cpp
+  Asteroids.cpp
+C:\Users\charl\Documents\MSc Computer Science With Games Technology\Year 2\Semester 2\IN2026 Games Technology\IN2026-Games-Technology-Coursework-1\src\Asteroids.cpp(444,25): warning C4018: '<': signed/unsigned mismatch
+C:\Users\charl\Documents\MSc Computer Science With Games Technology\Year 2\Semester 2\IN2026 Games Technology\IN2026-Games-Technology-Coursework-1\src\Asteroids.cpp(447,22): warning C4018: '<': signed/unsigned mismatch
 Asteroid.obj : warning LNK4075: ignoring '/EDITANDCONTINUE' due to '/SAFESEH' specification
   Asteroids.vcxproj -> C:\Users\charl\Documents\MSc Computer Science With Games Technology\Year 2\Semester 2\IN2026 Games Technology\IN2026-Games-Technology-Coursework-1\bin\Asteroids.exe
   ..\..\assets\ammo.png
+  ..\..\assets\armour.png
   ..\..\assets\asteroid.shape
   ..\..\assets\asteroid1_fs.png
   ..\..\assets\bullet.shape
+  ..\..\assets\enemy_fs.png
   ..\..\assets\explosion_fs.png
   ..\..\assets\extralife.png
   ..\..\assets\extralife.shape
   ..\..\assets\spaceship.shape
   ..\..\assets\spaceship_fs.png
   ..\..\assets\thruster.shape
-         10 file(s) copied.
+         12 file(s) copied.

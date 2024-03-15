@@ -31,7 +31,12 @@ public:
 	void ReplenishAmmo(const uint ammoGained) { mBulletCount += ammoGained; }
 	void SetAmmo(const uint ammo) { mBulletCount = ammo; }
 
+	bool IsArmoured() { return mArmoured; }
+	void SetAmoured(const bool armoured) { mArmoured = armoured; }
+
 private:
+	bool mArmoured;
+
 	float mThrust;
 
 	uint mBulletCount;

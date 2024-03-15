@@ -48,6 +48,8 @@ public:
 	void OnTimer(int value);
 
 private:
+	GameObjectList mGameObjectList;
+
 	bool mGameStarted;
 	bool mGameOver;
 
@@ -71,6 +73,7 @@ private:
 	void UpdateAmmoLabel(const uint bullets);
 	void OnGameOver();
 	void OnGameStart(bool isRestart);
+
 	shared_ptr<GameObject> CreateExplosion();
 
 	const static uint ON_GAME_OVER = 0;
@@ -78,6 +81,24 @@ private:
 	const static uint CREATE_NEW_PLAYER = 2;
 
 	const static uchar START_GAME_KEY = 's';
+
+	const static uint NUM_START_ASTEROIDS = 3;
+	const static uint NUM_POWERUPS = 3;
+	const static uint PLAYER_START_LIVES = 3;
+	const static uint PLAYER_START_BULLETS = 100;
+
+	void RemoveAllObjects()
+	{
+		for each (auto g in mGameObjectList)
+		{
+			if (g.get() != NULL) mGameWorld->RemoveObject(g);
+		}
+
+		mGameObjectList.clear();
+
+		mAsteroidCount = 0;
+		mCollectibleCount = 0;
+	}
 
 	ScoreKeeper mScoreKeeper;
 	Player mPlayer;

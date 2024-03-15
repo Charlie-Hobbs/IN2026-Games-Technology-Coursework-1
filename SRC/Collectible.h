@@ -7,6 +7,7 @@ enum ECollectibleType
 {
 	ExtraLife,
 	ExtraBullets,
+	Armour,
 	COLLECTIBLE_TYPE_LENGTH
 };
 
@@ -21,6 +22,12 @@ public:
 	bool CollisionTest(shared_ptr<GameObject> o);
 	void OnCollision(const GameObjectList& objects);
 	ECollectibleType GetCollectibleType() const { return mType; }
+	void SetCollectibleType(ECollectibleType type) { mType = type; }
+
+	static ECollectibleType RandomType()
+	{
+		return (ECollectibleType)(rand() % COLLECTIBLE_TYPE_LENGTH);
+	}
 };
 
 #endif

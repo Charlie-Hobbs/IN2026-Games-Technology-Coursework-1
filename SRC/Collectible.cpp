@@ -27,7 +27,7 @@ Collectible::Collectible(void) : GameObject("Collectible")
 	mVelocity.y = 0.0f;
 	mVelocity.z = 0.0f;
 
-	mType = (ECollectibleType) (rand() % ECollectibleType(COLLECTIBLE_TYPE_LENGTH));
+	mType = RandomType();
 }
 
 Collectible::~Collectible(void)
