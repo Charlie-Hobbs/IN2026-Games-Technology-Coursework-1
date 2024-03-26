@@ -12,6 +12,7 @@
 #include "GUILabel.h"
 #include "Explosion.h"
 #include "Collectible.h"
+#include "VectorMaths.h"
 
 // PUBLIC INSTANCE CONSTRUCTORS ///////////////////////////////////////////////
 
@@ -35,7 +36,6 @@ Asteroids::~Asteroids(void)
 void Asteroids::Start()
 {
 	mGameStarted = false;
-	mGameOver = false;
 
 	// Create a shared pointer for the Asteroids game object - DO NOT REMOVE
 	shared_ptr<Asteroids> thisPtr = shared_ptr<Asteroids>(this);
@@ -73,8 +73,11 @@ void Asteroids::Start()
 	// Add a player (watcher) to the game world
 	mGameWorld->AddListener(&mPlayer);
 
+
 	// Add this class as a listener of the player
 	mPlayer.AddListener(thisPtr);
+
+	InitialiseDemo();
 
 	GameSession::Start();
 }
@@ -93,17 +96,14 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 	switch (key)
 	{
 	case ' ':
+		if (!mGameStarted) return;
 		mSpaceship->Shoot();
 		UpdateAmmoLabel(mSpaceship->GetBulletCount());
 		break;
 	case START_GAME_KEY:
 		if (!mGameStarted)
 		{
-			OnGameStart(false);
-		}
-		else if (mGameOver)
-		{
-			OnGameStart(true);
+			OnGameStart();
 		}
 		break;
 	default:
@@ -115,6 +115,7 @@ void Asteroids::OnKeyReleased(uchar key, int x, int y) {}
 
 void Asteroids::OnSpecialKeyPressed(int key, int x, int y)
 {
+	if (!mGameStarted) return;
 	switch (key)
 	{
 	// If up arrow key is pressed start applying forward thrust
@@ -130,6 +131,7 @@ void Asteroids::OnSpecialKeyPressed(int key, int x, int y)
 
 void Asteroids::OnSpecialKeyReleased(int key, int x, int y)
 {
+	if (!mGameStarted) return;
 	switch (key)
 	{
 	// If up arrow key is released stop applying forward thrust
@@ -148,7 +150,7 @@ void Asteroids::OnSpecialKeyReleased(int key, int x, int y)
 
 void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 {
-	if (mGameOver) return;
+	if (mObjectsBeingRemoved) return; // objects being removed deliberately shouldnt result in this method running
 
 	if (object->GetType() == GameObjectType("Asteroid"))
 	{
@@ -233,6 +235,7 @@ shared_ptr<GameObject> Asteroids::CreateSpaceship()
 	// Return the spaceship so it can be added to the world
 	return mSpaceship;
 }
+
 
 void Asteroids::CreateAsteroids(const uint num_asteroids)
 {
@@ -406,14 +409,13 @@ void Asteroids::UpdateAmmoLabel(const uint bullets)
 
 void Asteroids::OnGameOver()
 {
-	mGameOver = true;
 	mLivesLabel->SetVisible(false);
 	mScoreLabel->SetVisible(false);
 	mAmmoCountLabel->SetVisible(false);
 	mGameOverLabel->SetVisible(true);
 }
 
-void Asteroids::OnGameStart(bool isRestart)
+void Asteroids::OnGameStart()
 {
 	mStartScreenLabel->SetVisible(false);
 
@@ -422,39 +424,30 @@ void Asteroids::OnGameStart(bool isRestart)
 
 	bool shouldGenerateCollectibles = true;
 	bool shouldGenerateAsteroids = true;
+	
+	RemoveAllObjects();
 
-	if (isRestart)
-	{
-		RemoveAllObjects();
+	mLevel = 0;
 
-		mLevel = 0;
+	mSpaceship->Reset();
+	mGameWorld->AddObject(mSpaceship);
 
-		mSpaceship->Reset();
-		mGameWorld->AddObject(mSpaceship);
+	mGameOverLabel->SetVisible(false);
+	mScoreKeeper.ResetScore();
 
-		mGameOverLabel->SetVisible(false);
-		mScoreKeeper.ResetScore();
+	mSpaceship->SetAmmo(PLAYER_START_BULLETS);
+	UpdateAmmoLabel(mSpaceship->GetBulletCount());
 
-		mSpaceship->SetAmmo(PLAYER_START_BULLETS);
-		UpdateAmmoLabel(mSpaceship->GetBulletCount());
+	mPlayer.SetLives(PLAYER_START_LIVES);
+	UpdateLivesLabel(mPlayer.GetLives());
 
-		mPlayer.SetLives(PLAYER_START_LIVES);
-		UpdateLivesLabel(mPlayer.GetLives());
+	if (mCollectibleCount < collectibleAmount) collectibleAmount -= mCollectibleCount;
+	else shouldGenerateCollectibles = false;
 
-		if (mCollectibleCount < collectibleAmount) collectibleAmount -= mCollectibleCount;
-		else shouldGenerateCollectibles = false;
+	if (mAsteroidCount < asteroidAmount) asteroidAmount -= mAsteroidCount;
+	else shouldGenerateAsteroids = false;
 
-		if (mAsteroidCount < asteroidAmount) asteroidAmount -= mAsteroidCount;
-		else shouldGenerateAsteroids = false;
-
-		mGameOver = false;
-	}
-	else
-	{
-		mGameWorld->AddObject(CreateSpaceship());
-
-		mGameStarted = true;
-	}
+	mGameStarted = true;
 
 	if (shouldGenerateAsteroids) CreateAsteroids(asteroidAmount);
 	if (shouldGenerateCollectibles) CreateCollectibles(collectibleAmount);
@@ -462,5 +455,54 @@ void Asteroids::OnGameStart(bool isRestart)
 	mScoreLabel->SetVisible(true);
 	mLivesLabel->SetVisible(true);
 	mAmmoCountLabel->SetVisible(true);
+
+	mSpaceship->SetAmoured(false); // player is armoured at the start for some reason, this fixes it
 }
 
+void Asteroids::InitialiseDemo()
+{
+	int collectibleAmount = NUM_POWERUPS;
+	int asteroidAmount = NUM_START_ASTEROIDS;
+	
+	mGameWorld->AddObject(CreateSpaceship());
+
+	CreateAsteroids(asteroidAmount);
+	CreateCollectibles(collectibleAmount);
+
+	mSpaceship->SetAmoured(false); // player is armoured at the start for some reason, this fixes it
+
+	mScoreLabel->SetVisible(true);
+	mLivesLabel->SetVisible(true);
+	mAmmoCountLabel->SetVisible(true);
+}
+
+void Asteroids::OnWorldUpdated(GameWorld* world)
+{
+	if (mGameStarted) return; // only run demo mode if the game isnt started
+
+	GLVector3f spaceshipPosition = mSpaceship->GetPosition();
+
+	shared_ptr<GameObject> target;
+	float closestSqrDist = 99999999999999999999999999999.0f;
+
+
+	for each (shared_ptr<GameObject> go in mGameObjectList)
+	{
+		if (go->GetType() != GameObjectType("Asteroid") || go->GetWorld() != world) continue;
+		GLVector3f pos = go->GetPosition();
+		float sqrDist = (pos - spaceshipPosition).lengthSqr();
+
+		if (sqrDist < closestSqrDist)
+		{
+			closestSqrDist = sqrDist;
+			target = go;
+		}
+	}
+	
+	GLVector3f dir = VectorMaths::Direction(spaceshipPosition, target->GetPosition());
+	float angle = VectorMaths::Angle(GLVector3f(1.0f, 0.0f, 0.0f), dir);
+	
+	if (dir.y < 0.0f) angle = 360.0f - angle;
+	
+	mSpaceship->SetAngle(angle);
+}

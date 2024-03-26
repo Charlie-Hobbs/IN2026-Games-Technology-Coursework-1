@@ -19,8 +19,16 @@ public:
 
 	void OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 	{
-		if (object->GetType() == GameObjectType("Asteroid")) {
+		GameObjectType type = object->GetType();
+
+		if (type == GameObjectType("Asteroid")) {
  			mScore += 10;
+			FireScoreChanged();
+		}
+		else if (type == GameObjectType("Spaceship"))
+		{
+			// asteroid is destroyed as well as player when killed, so remove the score that gets added
+			mScore -= 10;
 			FireScoreChanged();
 		}
 	}

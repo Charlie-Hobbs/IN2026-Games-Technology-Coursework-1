@@ -9,6 +9,7 @@
 #include "ScoreKeeper.h"
 #include "Player.h"
 #include "IPlayerListener.h"
+#include "Competitor.h"
 
 class GameObject;
 class Spaceship;
@@ -40,7 +41,7 @@ public:
 
 	// Declaration of IGameWorldListener interface //////////////////////////////
 
-	void OnWorldUpdated(GameWorld* world) {}
+	void OnWorldUpdated(GameWorld* world);
 	void OnObjectAdded(GameWorld* world, shared_ptr<GameObject> object) {}
 	void OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object);
 
@@ -50,8 +51,9 @@ public:
 private:
 	GameObjectList mGameObjectList;
 
+	bool mObjectsBeingRemoved;
+
 	bool mGameStarted;
-	bool mGameOver;
 
 	shared_ptr<Spaceship> mSpaceship;
 	shared_ptr<GUILabel> mScoreLabel;
@@ -72,7 +74,8 @@ private:
 	void UpdateLivesLabel(const int lives);
 	void UpdateAmmoLabel(const uint bullets);
 	void OnGameOver();
-	void OnGameStart(bool isRestart);
+	void OnGameStart();
+	void InitialiseDemo();
 
 	shared_ptr<GameObject> CreateExplosion();
 
@@ -87,8 +90,12 @@ private:
 	const static uint PLAYER_START_LIVES = 3;
 	const static uint PLAYER_START_BULLETS = 100;
 
+	ScoreKeeper mScoreKeeper;
+	Player mPlayer;
+
 	void RemoveAllObjects()
 	{
+		mObjectsBeingRemoved = true;
 		for each (auto g in mGameObjectList)
 		{
 			if (g.get() != NULL) mGameWorld->RemoveObject(g);
@@ -98,10 +105,9 @@ private:
 
 		mAsteroidCount = 0;
 		mCollectibleCount = 0;
-	}
 
-	ScoreKeeper mScoreKeeper;
-	Player mPlayer;
+		mObjectsBeingRemoved = false;
+	}
 };
 
 #endif

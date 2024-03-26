@@ -7,6 +7,8 @@
 #include "GameObjectType.h"
 #include "IPlayerListener.h"
 #include "IGameWorldListener.h"
+#include "Spaceship.h"
+#include "VectorMaths.h"
 
 class Player : public IGameWorldListener
 {
@@ -14,13 +16,14 @@ public:
 	Player() { mLives = 3; }
 	virtual ~Player() {}
 
-	void OnWorldUpdated(GameWorld* world) {}
+	virtual void OnWorldUpdated(GameWorld* world){}
 
-	void OnObjectAdded(GameWorld* world, shared_ptr<GameObject> object) {}
+	virtual void OnObjectAdded(GameWorld* world, shared_ptr<GameObject> object) {}
 
-	void OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
+	virtual void OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 	{
 		if (object->GetType() == GameObjectType("Spaceship")) {
+			
 			--mLives;
 			FirePlayerKilled();
 		}

@@ -122,6 +122,7 @@
     <ClInclude Include="..\..\SRC\Player.h" />
     <ClInclude Include="..\..\SRC\ScoreKeeper.h" />
     <ClInclude Include="..\..\src\Spaceship.h" />
+    <ClInclude Include="..\..\SRC\VectorMaths.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Engine\Engine.vcxproj">
