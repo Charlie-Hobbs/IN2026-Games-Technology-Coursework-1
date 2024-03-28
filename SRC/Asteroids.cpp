@@ -36,6 +36,7 @@ Asteroids::~Asteroids(void)
 void Asteroids::Start()
 {
 	mGameStarted = false;
+	mObjectsBeingRemoved = false;
 
 	// Create a shared pointer for the Asteroids game object - DO NOT REMOVE
 	shared_ptr<Asteroids> thisPtr = shared_ptr<Asteroids>(this);
@@ -185,6 +186,7 @@ void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 			break;
 		}
 	}
+
 }
 
 // PUBLIC INSTANCE METHODS IMPLEMENTING ITimerListener ////////////////////////
@@ -209,8 +211,26 @@ void Asteroids::OnTimer(int value)
 
 	if (value == ON_GAME_OVER)
 	{
-		OnGameOver();
+		if (!mGameStarted)
+		{
+			RemoveAllObjects();
+
+			mSpaceship->Reset();
+			mGameWorld->AddObject(mSpaceship);
+
+			mLevel = 0;
+			CreateAsteroids(NUM_START_ASTEROIDS);
+			CreateCollectibles(NUM_POWERUPS);
+			mScoreKeeper.ResetScore();
+			mPlayer.SetLives(PLAYER_START_LIVES);
+			mSpaceship->SetAmmo(PLAYER_START_BULLETS);
+			UpdateAmmoLabel(mSpaceship->GetBulletCount());
+			UpdateLivesLabel(mPlayer.GetLives());
+		}
+		else OnGameOver();
 	}
+
+	if (value == ALLOW_DEMO_SHOOT) mAllowDemoShoot = true;
 }
 
 // PROTECTED INSTANCE METHODS /////////////////////////////////////////////////
@@ -231,6 +251,8 @@ shared_ptr<GameObject> Asteroids::CreateSpaceship()
 	mSpaceship->Reset();
 
 	mSpaceship->SetAmmo(PLAYER_START_BULLETS);
+
+	mSpaceship->SetBulletSpeed(30.0f);
 
 	// Return the spaceship so it can be added to the world
 	return mSpaceship;
@@ -474,23 +496,53 @@ void Asteroids::InitialiseDemo()
 	mScoreLabel->SetVisible(true);
 	mLivesLabel->SetVisible(true);
 	mAmmoCountLabel->SetVisible(true);
+
+	mAllowDemoShoot = true;
+	mDemoShipState = EDemoShipState(TargetAsteroid);
 }
 
 void Asteroids::OnWorldUpdated(GameWorld* world)
 {
 	if (mGameStarted) return; // only run demo mode if the game isnt started
 
-	GLVector3f spaceshipPosition = mSpaceship->GetPosition();
+	mDemoShipState = EDemoShipState(TargetAsteroid);
+	if (mSpaceship->GetBulletCount() < PLAYER_START_BULLETS / 2) mDemoShipState = EDemoShipState(SeekAmmo);
+	if (mPlayer.GetLives() <= 2) mDemoShipState = EDemoShipState(SeekHealth);
+	mSpaceship->Thrust(0);
+	switch (mDemoShipState)
+	{
+	case TargetAsteroid:
+		TargetAsteroidState(world);
+		break;
+	case SeekHealth:
+		if (!SeekHealthState(world))
+		{
+			TargetAsteroidState(world);
+		}
+		break;
+	case SeekAmmo:
+		if (!SeekAmmoState(world))
+		{
+			TargetAsteroidState(world);
+		}
+		break;
+	default:
+		TargetAsteroidState(world);
+		break;
+	}
+}
 
+shared_ptr<GameObject> Asteroids::FindAsteroid(const GameWorld* world)
+{
 	shared_ptr<GameObject> target;
 	float closestSqrDist = 99999999999999999999999999999.0f;
-
 
 	for each (shared_ptr<GameObject> go in mGameObjectList)
 	{
 		if (go->GetType() != GameObjectType("Asteroid") || go->GetWorld() != world) continue;
+
 		GLVector3f pos = go->GetPosition();
-		float sqrDist = (pos - spaceshipPosition).lengthSqr();
+		float sqrDist = (pos - mSpaceship->GetPosition()).lengthSqr();
 
 		if (sqrDist < closestSqrDist)
 		{
@@ -498,11 +550,153 @@ void Asteroids::OnWorldUpdated(GameWorld* world)
 			target = go;
 		}
 	}
-	
-	GLVector3f dir = VectorMaths::Direction(spaceshipPosition, target->GetPosition());
+
+	return target;
+}
+
+shared_ptr<GameObject> Asteroids::FindCollectible(const GameWorld* world, const int typeToFind)
+{
+	shared_ptr<GameObject> target;
+	float closestSqrDist = 99999999999999999999999999999.0f;
+
+	for each (shared_ptr<GameObject> go in mGameObjectList)
+	{
+		if (go.get() == nullptr) continue;
+		if (go->GetType() != GameObjectType("Collectible") || go->GetWorld() != world) continue;
+
+		Collectible* col = (Collectible*)go.get();
+		if (col->GetCollectibleType() != typeToFind) continue;
+
+		GLVector3f pos = go->GetPosition();
+		float sqrDist = (pos - mSpaceship->GetPosition()).lengthSqr();
+
+		if (sqrDist < closestSqrDist)
+		{
+			closestSqrDist = sqrDist;
+			target = go;
+		}
+	}
+
+	return target;
+}
+
+float Asteroids::AngleToFaceTarget(const GLVector3f& targetPos)
+{
+	GLVector3f dir = VectorMaths::Direction(mSpaceship->GetPosition(), targetPos);
 	float angle = VectorMaths::Angle(GLVector3f(1.0f, 0.0f, 0.0f), dir);
-	
+
 	if (dir.y < 0.0f) angle = 360.0f - angle;
-	
+
+	return angle;
+}
+
+void Asteroids::RemoveAllObjects()
+{
+	mObjectsBeingRemoved = true;
+	for each (auto g in mGameObjectList)
+	{
+		if (g.get() != NULL) mGameWorld->RemoveObject(g);
+	}
+
+	mGameObjectList.clear();
+
+	mAsteroidCount = 0;
+	mCollectibleCount = 0;
+
+	mObjectsBeingRemoved = false;
+}
+
+void Asteroids::TargetAsteroidState(GameWorld* world)
+{
+	shared_ptr<GameObject> target = FindAsteroid(world);
+
+	if (target.get() == nullptr) return;
+	if (target->GetWorld() != world) return;
+
+	bool slowingDown = false;
+	if (mSpaceship->GetVelocity().length() > 3.0f)
+	{
+		float reverseAngle = AngleToFaceTarget(mSpaceship->GetPosition() - mSpaceship->GetVelocity());
+		mSpaceship->SetAngle(reverseAngle);
+		mSpaceship->Thrust(10.0f);
+		slowingDown = true;
+	}
+	else
+	{
+		mSpaceship->Thrust(0);
+	}
+
+	GLVector3f directionToTarget = VectorMaths::Direction(mSpaceship->GetPosition(), target->GetPosition());
+	float velocityInDirectionOfTarget = mSpaceship->GetVelocity().dot(directionToTarget);
+
+	float bulletSpeed = mSpaceship->GetBulletSpeed() + velocityInDirectionOfTarget;
+	float timeForBulletToHitTarget = (mSpaceship->GetPosition() - target->GetPosition()).length() / bulletSpeed;
+
+	GLVector3f predictedTargetPos = target->GetPosition() + (target->GetVelocity() * timeForBulletToHitTarget);
+
+	float angle = AngleToFaceTarget(predictedTargetPos);
+
 	mSpaceship->SetAngle(angle);
+	if (mAllowDemoShoot)
+	{
+		mSpaceship->Shoot();
+		SetTimer(500, ALLOW_DEMO_SHOOT);
+		mAllowDemoShoot = false;
+		UpdateAmmoLabel(mSpaceship->GetBulletCount());
+	}
+	if ((mSpaceship->GetPosition() - predictedTargetPos).length() > 5.0f && !slowingDown) mSpaceship->Thrust(10);
+}
+
+bool Asteroids::SeekHealthState(GameWorld* world)
+{
+	shared_ptr<GameObject> target = FindCollectible(world, ECollectibleType(ExtraLife));
+
+	if (target.get() == nullptr) return false;
+	if (target->GetWorld() != world) return false;
+
+	GLVector3f directionToTarget = VectorMaths::Direction(mSpaceship->GetPosition(), target->GetPosition());
+
+	for each (shared_ptr<GameObject> go in mGameObjectList)
+	{
+		if (go.get() == nullptr) continue;
+		if (go->GetType() != GameObjectType("Asteroid") || go->GetWorld() != world) continue;
+
+		GLVector3f dir = VectorMaths::Direction(mSpaceship->GetPosition(), go->GetPosition());
+		float dot = directionToTarget.dot(dir);
+		if (dot > 0.8f) return false; // asteroid in the way
+	}
+
+
+	float angle = AngleToFaceTarget(target->GetPosition());
+
+	mSpaceship->SetAngle(angle);
+	mSpaceship->Thrust(10);
+	return true;
+}
+
+bool Asteroids::SeekAmmoState(GameWorld* world)
+{
+	shared_ptr<GameObject> target = FindCollectible(world, ECollectibleType(ExtraBullets));
+
+	if (target.get() == nullptr) return false;
+	if (target->GetWorld() != world) return false;
+
+	GLVector3f directionToTarget = VectorMaths::Direction(mSpaceship->GetPosition(), target->GetPosition());
+
+	for each (shared_ptr<GameObject> go in mGameObjectList)
+	{
+		if (go.get() == nullptr) continue;
+		if (go->GetType() != GameObjectType("Asteroid") || go->GetWorld() != world) continue;
+
+		GLVector3f dir = VectorMaths::Direction(mSpaceship->GetPosition(), go->GetPosition());
+		float dot = directionToTarget.dot(dir);
+		if (dot > 0.8f) return false; // asteroid in the way
+	}
+
+	float angle = AngleToFaceTarget(target->GetPosition());
+
+	mSpaceship->SetAngle(angle);
+	mSpaceship->Thrust(10);
+
+	return true;
 }

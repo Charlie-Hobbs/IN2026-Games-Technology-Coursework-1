@@ -11,6 +11,13 @@
 #include "IPlayerListener.h"
 #include "Competitor.h"
 
+enum EDemoShipState
+{
+	TargetAsteroid,
+	SeekHealth,
+	SeekAmmo
+};
+
 class GameObject;
 class Spaceship;
 class GUILabel;
@@ -53,6 +60,9 @@ private:
 
 	bool mObjectsBeingRemoved;
 
+	bool mAllowDemoShoot;
+	EDemoShipState mDemoShipState;
+
 	bool mGameStarted;
 
 	shared_ptr<Spaceship> mSpaceship;
@@ -75,13 +85,21 @@ private:
 	void UpdateAmmoLabel(const uint bullets);
 	void OnGameOver();
 	void OnGameStart();
+
 	void InitialiseDemo();
+	void TargetAsteroidState(GameWorld* world);
+	bool SeekHealthState(GameWorld* world);
+	bool SeekAmmoState(GameWorld* world);
 
 	shared_ptr<GameObject> CreateExplosion();
+	shared_ptr<GameObject> FindAsteroid(const GameWorld* world);
+	shared_ptr<GameObject> FindCollectible(const GameWorld* world, const int typeToFind);
+	float AngleToFaceTarget(const GLVector3f& targetPos);
 
 	const static uint ON_GAME_OVER = 0;
 	const static uint START_NEXT_LEVEL = 1;
 	const static uint CREATE_NEW_PLAYER = 2;
+	const static uint ALLOW_DEMO_SHOOT = 3;
 
 	const static uchar START_GAME_KEY = 's';
 
@@ -93,21 +111,8 @@ private:
 	ScoreKeeper mScoreKeeper;
 	Player mPlayer;
 
-	void RemoveAllObjects()
-	{
-		mObjectsBeingRemoved = true;
-		for each (auto g in mGameObjectList)
-		{
-			if (g.get() != NULL) mGameWorld->RemoveObject(g);
-		}
-
-		mGameObjectList.clear();
-
-		mAsteroidCount = 0;
-		mCollectibleCount = 0;
-
-		mObjectsBeingRemoved = false;
-	}
+	void RemoveAllObjects();
+	
 };
 
 #endif

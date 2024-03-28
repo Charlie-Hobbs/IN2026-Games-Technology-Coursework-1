@@ -34,10 +34,14 @@ public:
 	bool IsArmoured() { return mArmoured; }
 	void SetAmoured(const bool armoured) { mArmoured = armoured; }
 
+	float GetBulletSpeed() const { return mBulletSpeed; }
+	void SetBulletSpeed(float speed) { mBulletSpeed = speed; }
+
 private:
 	bool mArmoured;
 
 	float mThrust;
+	float mBulletSpeed;
 
 	uint mBulletCount;
 

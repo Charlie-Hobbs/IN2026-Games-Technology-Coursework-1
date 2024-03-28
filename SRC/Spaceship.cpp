@@ -82,7 +82,7 @@ void Spaceship::Shoot(void)
 	// Calculate the point at the node of the spaceship from position and heading
 	GLVector3f bullet_position = mPosition + (spaceship_heading * 4);
 	// Calculate how fast the bullet should travel
-	float bullet_speed = 30;
+	float bullet_speed = mBulletSpeed;
 	// Construct a vector for the bullet's velocity
 	GLVector3f bullet_velocity = mVelocity + spaceship_heading * bullet_speed;
 	// Construct a new bullet
