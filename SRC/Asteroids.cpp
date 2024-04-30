@@ -13,6 +13,7 @@
 #include "Explosion.h"
 #include "Collectible.h"
 #include "VectorMaths.h"
+#include <functional>
 
 // PUBLIC INSTANCE CONSTRUCTORS ///////////////////////////////////////////////
 
@@ -507,7 +508,7 @@ void Asteroids::OnWorldUpdated(GameWorld* world)
 
 	mDemoShipState = EDemoShipState(TargetAsteroid);
 	if (mSpaceship->GetBulletCount() < PLAYER_START_BULLETS / 2) mDemoShipState = EDemoShipState(SeekAmmo);
-	if (mPlayer.GetLives() <= 2) mDemoShipState = EDemoShipState(SeekHealth);
+	if (mPlayer.GetLives() < 2) mDemoShipState = EDemoShipState(SeekHealth);
 	mSpaceship->Thrust(0);
 	switch (mDemoShipState)
 	{
@@ -613,18 +614,9 @@ void Asteroids::TargetAsteroidState(GameWorld* world)
 	if (target.get() == nullptr) return;
 	if (target->GetWorld() != world) return;
 
-	bool slowingDown = false;
-	if (mSpaceship->GetVelocity().length() > 3.0f)
-	{
-		float reverseAngle = AngleToFaceTarget(mSpaceship->GetPosition() - mSpaceship->GetVelocity());
-		mSpaceship->SetAngle(reverseAngle);
-		mSpaceship->Thrust(10.0f);
-		slowingDown = true;
-	}
-	else
-	{
-		mSpaceship->Thrust(0);
-	}
+	int thrusterState = 0;
+	
+	float speed = mSpaceship->GetVelocity().length();
 
 	GLVector3f directionToTarget = VectorMaths::Direction(mSpaceship->GetPosition(), target->GetPosition());
 	float velocityInDirectionOfTarget = mSpaceship->GetVelocity().dot(directionToTarget);
@@ -636,15 +628,51 @@ void Asteroids::TargetAsteroidState(GameWorld* world)
 
 	float angle = AngleToFaceTarget(predictedTargetPos);
 
-	mSpaceship->SetAngle(angle);
-	if (mAllowDemoShoot)
+	float distanceToTarget = (mSpaceship->GetPosition() - target->GetPosition()).length();
+
+	GLVector3f relativeVelocity = mSpaceship->GetVelocity() - target->GetVelocity();
+	float relSpeed = relativeVelocity.length();
+	float angleBetweenVelocityAndDirection = VectorMaths::Angle(relativeVelocity, directionToTarget);
+
+	
+	if (timeForBulletToHitTarget < 1.8f) thrusterState = 3;
+	else if (angleBetweenVelocityAndDirection > 90.0f) thrusterState = 0;
+	else if (distanceToTarget > 5.0f && relSpeed < 15.0f && angleBetweenVelocityAndDirection < 15.0f) thrusterState = 1;
+	else if ((relSpeed > 16.0f || distanceToTarget < 5.0f) && angleBetweenVelocityAndDirection < 20.0f) thrusterState = 2;
+	else thrusterState = 1;
+
+	switch (thrusterState)
 	{
-		mSpaceship->Shoot();
-		SetTimer(500, ALLOW_DEMO_SHOOT);
-		mAllowDemoShoot = false;
-		UpdateAmmoLabel(mSpaceship->GetBulletCount());
+	case 0:
+		{
+			// turning and slowing down
+			float reverseAngle = AngleToFaceTarget(mSpaceship->GetPosition() - mSpaceship->GetVelocity());
+			mSpaceship->SetAngle(reverseAngle);
+			mSpaceship->Thrust(10.0f);
+		}
+		break;
+	case 1: // chasing asteroid
+		mSpaceship->SetAngle(angle);
+		mSpaceship->Thrust(10.0f);
+		break;
+	case 2: // coasting
+		mSpaceship->SetAngle(angle);
+		mSpaceship->Thrust(0.0f);
+		break;
+	case 3: // shooting asteroid
+		mSpaceship->SetAngle(angle);
+		mSpaceship->Thrust(0.0f);
+		if (mAllowDemoShoot)
+		{
+			mSpaceship->Shoot();
+			SetTimer(500, ALLOW_DEMO_SHOOT);
+			mAllowDemoShoot = false;
+			UpdateAmmoLabel(mSpaceship->GetBulletCount());
+		}
+		break;
 	}
-	if ((mSpaceship->GetPosition() - predictedTargetPos).length() > 5.0f && !slowingDown) mSpaceship->Thrust(10);
+
+	UpdateAmmoLabel(thrusterState);
 }
 
 bool Asteroids::SeekHealthState(GameWorld* world)

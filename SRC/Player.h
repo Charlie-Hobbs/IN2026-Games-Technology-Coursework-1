@@ -9,6 +9,7 @@
 #include "IGameWorldListener.h"
 #include "Spaceship.h"
 #include "VectorMaths.h"
+#include "Event.h"
 
 class Player : public IGameWorldListener
 {
